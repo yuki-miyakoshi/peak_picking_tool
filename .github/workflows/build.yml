@@ -27,12 +27,6 @@ jobs:
     - name: Build executable
       run: pyinstaller --onefile peak_picking_tool.py
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: executable
-        path: dist/peak_picking_tool.exe
-
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
