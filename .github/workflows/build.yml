@@ -21,10 +21,10 @@ jobs:
         pip install -r requirements.txt
 
     - name: Build
-      run: pyinstaller --onefile your_script.py
+      run: pyinstaller --onefile peak_picking_tool.py
 
     - name: Upload exe
       uses: actions/upload-artifact@v2
       with:
         name: executable
-        path: dist/your_script.exe
+        path: dist/peak_picking_tool.exe
