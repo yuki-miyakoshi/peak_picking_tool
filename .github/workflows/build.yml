@@ -1,9 +1,6 @@
-name: Build and Release
+name: Build and Package
 
-on:
-  push:
-    tags:
-      - '*'
+on: [push]
 
 jobs:
   build:
@@ -27,21 +24,8 @@ jobs:
     - name: Build executable
       run: pyinstaller --onefile peak_picking_tool.py
 
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: dist/peak_picking_tool.exe
-        asset_name: peak_picking_tool.exe
-        asset_content_type: application/octet-stream
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-        token: ${{ secrets.GITHUB_TOKEN }}
+        name: executable
+        path: dist/peak_picking_tool.exe
