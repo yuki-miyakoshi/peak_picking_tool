@@ -1,0 +1,30 @@
+name: Build exe
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'  # 使用するPythonバージョン
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Build
+      run: pyinstaller --onefile your_script.py
+
+    - name: Upload exe
+      uses: actions/upload-artifact@v2
+      with:
+        name: executable
+        path: dist/your_script.exe
