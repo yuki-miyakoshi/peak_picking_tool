@@ -1,22 +1,22 @@
-name: Build and Release
+name: Release
 
 on:
   push:
     tags:
-      - '*'
+      - 'v*.*.*'
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Check out the code
+    - name: Checkout code
       uses: actions/checkout@v2
 
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.x
+        python-version: '3.x'
 
     - name: Install dependencies
       run: |
@@ -26,6 +26,12 @@ jobs:
 
     - name: Build executable
       run: pyinstaller --onefile peak_picking_tool.py
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: executable
+        path: dist/peak_picking_tool.exe
 
     - name: Create Release
       id: create_release
