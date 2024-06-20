@@ -68,18 +68,12 @@ jobs:
         openssl x509 -in cert.pem -text -noout
         openssl rsa -in cert.key -check
 
-    - name: ファイル名を変更
-      shell: pwsh
-      run: |
-        $REPO_NAME = (git rev-parse --show-toplevel | Split-Path -Leaf)
-        Rename-Item -Path "dist/main.exe" -NewName "$REPO_NAME.exe"
-
     - name: 実行ファイルに署名
       run: |
-        if [ -f dist/${{ github.event.repository.name }}.exe ]; then
-          osslsigncode sign -certs cert.pem -key cert.key -n "Your App" -t http://timestamp.digicert.com -in dist/${{ github.event.repository.name }}.exe -out dist/${{ github.event.repository.name }}-signed.exe
+        if [ -f dist/main.exe ]; then
+          osslsigncode sign -certs cert.pem -key cert.key -n "Your App" -t http://timestamp.digicert.com -in dist/main.exe -out dist/main-signed.exe
         else
-          echo "File dist/${{ github.event.repository.name }}.exe does not exist"
+          echo "File dist/main.exe does not exist"
           exit 1
         fi
 
@@ -87,19 +81,19 @@ jobs:
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
-        tag_name: ${{ needs.build.outputs.NEW_TAG }}
-        release_name: Release ${{ needs.build.outputs.NEW_TAG }}
+        tag_name: ${{ steps.bump_version.outputs.NEW_TAG }}
+        release_name: Release ${{ steps.bump_version.outputs.NEW_TAG }}
         draft: false
         prerelease: false
 
     - name: リリースアセットをアップロード
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ github.event.repository.name }}-signed.exe
-        asset_name: ${{ github.event.repository.name }}-signed.exe
+        asset_path: dist/main-signed.exe
+        asset_name: main-signed.exe
         asset_content_type: application/octet-stream
