@@ -17,9 +17,10 @@ jobs:
 
     - name: Bump version and tag
       id: bump_version
+      shell: pwsh
       run: |
-        NEW_TAG=$(date +'%Y%m%d%H%M%S')
-        echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+        $NEW_TAG = (Get-Date -Format "yyyyMMddHHmmss")
+        echo "NEW_TAG=$NEW_TAG" >> $env:GITHUB_ENV
         git tag $NEW_TAG
         git push origin $NEW_TAG
 
