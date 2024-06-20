@@ -45,7 +45,6 @@ jobs:
         if (!(Test-Path "requirements.txt")) {
           Write-Host "requirements.txt が存在しないため生成します。"
           pipreqs . --force
-        }
 
     - name: 仮想環境のセットアップ
       run: |
@@ -86,3 +85,9 @@ jobs:
         asset_path: build/dist/peak_picking_tool.exe
         asset_name: peak_picking_tool.exe
         asset_content_type: application/octet-stream
+
+    - name: キャッシュディレクトリをプッシュ
+      run: |
+        git add build
+        git commit -m "Update build cache"
+        git push origin HEAD:build-cache
