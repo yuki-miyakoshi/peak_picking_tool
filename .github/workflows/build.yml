@@ -76,13 +76,21 @@ jobs:
         $REPO_NAME = (git rev-parse --show-toplevel | Split-Path -Leaf)
         Rename-Item -Path "dist/main.exe" -NewName "$REPO_NAME.exe"
 
-    - name: 自己署名証明書を作成
+    - name: 自己署名証明書を作成し、エクスポート
       shell: pwsh
       env:
         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
       run: |
         $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourName" -CertStoreLocation "Cert:\CurrentUser\My"
         Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath "cert.pfx" -Password (ConvertTo-SecureString -String $env:CERTIFICATE_PASSWORD -Force -AsPlainText)
+        $base64cert = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes("cert.pfx"))
+        echo "CERTIFICATE=$base64cert" >> $GITHUB_ENV
+
+    - name: GitHubシークレットから証明書を取得しデコード
+      shell: pwsh
+      run: |
+        $certBytes = [System.Convert]::FromBase64String($env:CERTIFICATE)
+        [System.IO.File]::WriteAllBytes("cert.pfx", $certBytes)
 
     - name: signtool.exeを使って実行ファイルに署名
       uses: skymatic/code-sign-action@v3.0.0
