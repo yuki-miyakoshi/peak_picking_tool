@@ -30,7 +30,7 @@ jobs:
 
     - name: アーキテクチャの取得
       id: get_architecture
-      run: echo "::set-output name=arch::$(echo $env:PROCESSOR_ARCHITECTURE)"
+      run: echo $env:PROCESSOR_ARCHITECTURE > architecture.txt
 
     - name: 実行ファイルをビルド
       run: pyinstaller --onefile src/main.py
@@ -51,7 +51,6 @@ jobs:
         path: dist
 
     - name: アーキテクチャ情報をアップロード
-      run: echo ${{ steps.get_architecture.outputs.arch }} > architecture.txt
       uses: actions/upload-artifact@v2
       with:
         name: architecture
@@ -133,6 +132,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe
-        asset_name: ${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe
+        asset_path: dist/${{ steps.get_repo_name.outputs.repo_name }}-$(cat architecture.txt).exe
+        asset_name: ${{ steps.get_repo_name.outputs.repo_name }}-$(cat architecture.txt).exe
         asset_content_type: application/octet-stream
