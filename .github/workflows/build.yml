@@ -53,17 +53,17 @@ jobs:
 
     - name: 仮想環境のアクティベートと依存関係のインストール
       run: |
-        .\build\.venv\Scripts\Activate.ps1
+        .\\build\\.venv\\Scripts\\Activate.ps1
         pip install -r requirements.txt
 
     - name: pyinstaller をインストール
       run: |
-        .\build\.venv\Scripts\Activate.ps1
+        .\\build\\.venv\\Scripts\\Activate.ps1
         pip install pyinstaller
 
     - name: 実行可能ファイルをビルド
       run: |
-        .\build\.venv\Scripts\Activate.ps1
+        .\\build\\.venv\\Scripts\\Activate.ps1
         pyinstaller --onefile peak_picking_tool.py --distpath build/dist
 
     - name: GitHubリリースを作成
