@@ -7,15 +7,15 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Check out the code
+    - name: コードをチェックアウト
       uses: actions/checkout@v2
 
-    - name: Set up Git
+    - name: Gitの設定
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Bump version and tag
+    - name: バージョンをバンプしてタグ付け
       id: bump_version
       shell: pwsh
       run: |
@@ -24,21 +24,25 @@ jobs:
         git tag $NEW_TAG
         git push origin $NEW_TAG
 
-    - name: Set up Python
+    - name: Pythonをセットアップ
       uses: actions/setup-python@v2
       with:
         python-version: 3.x
 
-    - name: Install dependencies
+    - name: 依存関係を自動生成
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller
+        pip install pipreqs
+        if [ ! -f requirements.txt ]; then
+          echo "requirements.txt が存在しないため生成します。"
+          pipreqs . --force
+        fi
         pip install -r requirements.txt
 
-    - name: Build executable
+    - name: 実行可能ファイルをビルド
       run: pyinstaller --onefile peak_picking_tool.py
 
-    - name: Create GitHub Release
+    - name: GitHubリリースを作成
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -49,7 +53,7 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Release Asset
+    - name: リリースアセットをアップロード
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
