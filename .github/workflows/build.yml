@@ -45,7 +45,7 @@ jobs:
     - name: 仮想環境をアクティブ化して実行ファイルをビルド
       run: |
         .\venv\Scripts\activate
-        pyinstaller --onefile src/main.py
+        pyinstaller --onefile --icon=resources/icon.ico src/main.py
 
     - name: ビルド成果物の検証
       run: |
