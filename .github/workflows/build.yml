@@ -43,7 +43,7 @@ jobs:
       run: pip install pyinstaller
 
     - name: 実行可能ファイルをビルド
-      run: pyinstaller --onefile peak_picking_tool.py
+      run: pyinstaller --onefile src/main.py
 
     - name: GitHubリリースを作成
       id: create_release
