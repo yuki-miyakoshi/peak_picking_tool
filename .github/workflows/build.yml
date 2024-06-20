@@ -79,9 +79,15 @@ jobs:
         echo "${{ secrets.CERT_PFX }}" | base64 --decode > cert.pfx
 
     - name: 実行ファイルに署名
-      shell: bash
-      run: |
-        signtool sign /f cert.pfx /p "${{ secrets.CERTIFICATE_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a dist/${{ github.event.repository.name }}.exe
+      uses: skymatic/code-sign-action@v3.0.0
+      with:
+        certificate: ${{ secrets.CERT_PFX_BASE64 }}
+        password: ${{ secrets.CERTIFICATE_PASSWORD }}
+        certificatesha1: ${{ secrets.CERTIFICATE_SHA1 }}
+        description: 'Your App'
+        timestampUrl: 'http://timestamp.digicert.com'
+        folder: 'dist'
+        recursive: false
 
     - name: GitHubリリースを作成
       id: create_release
