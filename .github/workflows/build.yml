@@ -26,9 +26,8 @@ jobs:
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-
-      - name: Configure Poetry
-        run: |
+          $poetryPath = [System.Environment]::GetEnvironmentVariable("USERPROFILE") + "\AppData\Roaming\Python\Scripts"
+          echo "##vso[task.prependpath]$poetryPath"
           poetry config virtualenvs.create false
 
       - name: Install dependencies with Poetry
