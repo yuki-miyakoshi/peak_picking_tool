@@ -33,7 +33,9 @@ jobs:
       id: cache
       uses: actions/cache@v2
       with:
-        path: build
+        path: |
+          build/.venv
+          build/dist
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
