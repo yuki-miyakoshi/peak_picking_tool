@@ -28,6 +28,10 @@ jobs:
     - name: pyinstaller をインストール
       run: pip install pyinstaller
 
+    - name: アーキテクチャの取得
+      id: get_architecture
+      run: echo "::set-output name=arch::$(echo $env:PROCESSOR_ARCHITECTURE)"
+
     - name: 実行ファイルをビルド
       run: pyinstaller --onefile src/main.py
 
@@ -46,6 +50,13 @@ jobs:
         name: unsigned-dist
         path: dist
 
+    - name: アーキテクチャ情報をアップロード
+      run: echo ${{ steps.get_architecture.outputs.arch }} > architecture.txt
+      uses: actions/upload-artifact@v2
+      with:
+        name: architecture
+        path: architecture.txt
+
   sign:
     needs: build
     runs-on: ubuntu-latest
@@ -60,13 +71,15 @@ jobs:
         name: unsigned-dist
         path: dist
 
+    - name: アーキテクチャ情報をダウンロード
+      uses: actions/download-artifact@v2
+      with:
+        name: architecture
+        path: .
+
     - name: リポジトリ名を取得
       id: get_repo_name
       run: echo "::set-output name=repo_name::$(basename $GITHUB_REPOSITORY)"
-
-    - name: アーキテクチャの取得
-      id: get_architecture
-      run: echo "::set-output name=arch::$(uname -m)"
 
     - name: バージョンをバンプしてタグ付け
       id: bump_version
@@ -95,8 +108,9 @@ jobs:
 
     - name: 実行ファイルに署名
       run: |
+        ARCH=$(cat architecture.txt)
         if [ -f dist/main.exe ]; then
-          osslsigncode sign -certs cert.pem -key cert.key -n "Your App" -t http://timestamp.digicert.com -in dist/main.exe -out dist/${{ steps.get_repo_name.outputs.repo_name }}-x86_64.exe
+          osslsigncode sign -certs cert.pem -key cert.key -n "Your App" -t http://timestamp.digicert.com -in dist/main.exe -out dist/${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe
         else
           echo "File dist/main.exe does not exist"
           exit 1
@@ -119,6 +133,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ steps.get_repo_name.outputs.repo_name }}-${{ steps.get_architecture.outputs.arch }}.exe
-        asset_name: ${{ steps.get_repo_name.outputs.repo_name }}-${{ steps.get_architecture.outputs.arch }}.exe
+        asset_path: dist/${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe
+        asset_name: ${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe
         asset_content_type: application/octet-stream
