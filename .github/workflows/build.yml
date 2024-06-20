@@ -48,7 +48,7 @@ jobs:
     - name: ファイル名を変更
       shell: pwsh
       run: |
-        $REPO_NAME = (git rev-parse --show-toplevel).Split('\')[-1]
+        $REPO_NAME = (git rev-parse --show-toplevel | Split-Path -Leaf)
         Rename-Item -Path "dist/main.exe" -NewName "$REPO_NAME.exe"
 
     - name: GitHubリリースを作成
