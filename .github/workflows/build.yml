@@ -15,10 +15,8 @@ jobs:
       with:
         python-version: 3.x
 
-    - name: 仮想環境を作成
-      run: python -m venv venv
-
     - name: Pythonキャッシュの復元
+      id: cache-python
       uses: actions/cache@v2
       with:
         path: venv
@@ -27,7 +25,23 @@ jobs:
           ${{ runner.os }}-venv-
 
     - name: 仮想環境をアクティブ化して依存関係をインストール
+      id: install-dependencies
       run: |
+        .\venv\Scripts\activate
+        python -m pip install --upgrade pip
+        pip install pipreqs
+        if (!(Test-Path "requirements.txt")) {
+          Write-Host "requirements.txt が存在しないため生成します。"
+          pipreqs . --force
+        }
+        pip install -r requirements.txt
+        pip install pyinstaller
+      continue-on-error: true
+
+    - name: 仮想環境を再作成して依存関係をインストール (キャッシュを使用しない)
+      if: failure()
+      run: |
+        python -m venv venv
         .\venv\Scripts\activate
         python -m pip install --upgrade pip
         pip install pipreqs
