@@ -76,11 +76,6 @@ jobs:
         $REPO_NAME = (git rev-parse --show-toplevel | Split-Path -Leaf)
         Rename-Item -Path "dist/main.exe" -NewName "$REPO_NAME.exe"
 
-    - name: Windows SDK をインストール
-      run: |
-        choco install windows-sdk-10-version-1903-all -y
-        RefreshEnv
-
     - name: 自己署名証明書を作成
       shell: pwsh
       env:
