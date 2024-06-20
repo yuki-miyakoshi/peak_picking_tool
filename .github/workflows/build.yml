@@ -94,12 +94,6 @@ jobs:
           exit 1
         fi
 
-    - name: 署名後のビルド成果物をアーティファクトとしてアップロード
-      uses: actions/upload-artifact@v2
-      with:
-        name: signed-dist
-        path: dist
-
     - name: GitHubリリースを作成
       id: create_release
       uses: actions/create-release@v1
@@ -110,16 +104,6 @@ jobs:
         release_name: Release ${{ steps.bump_version.outputs.new_tag }}
         draft: false
         prerelease: false
-
-    - name: 署名前の実行ファイルをリリースアセットとしてアップロード
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/main.exe
-        asset_name: main.exe
-        asset_content_type: application/octet-stream
 
     - name: 署名後の実行ファイルをリリースアセットとしてアップロード
       uses: actions/upload-release-asset@v1
