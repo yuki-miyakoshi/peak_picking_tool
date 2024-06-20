@@ -29,6 +29,17 @@ jobs:
       with:
         python-version: 3.x
 
+    - name: キャッシュディレクトリの設定
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/pip
+          ./.venv
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: 依存関係を自動生成
       run: |
         python -m pip install --upgrade pip
@@ -37,13 +48,19 @@ jobs:
           Write-Host "requirements.txt が存在しないため生成します。"
           pipreqs . --force
         }
+        python -m venv .venv
+        source .venv/Scripts/activate
         pip install -r requirements.txt
 
     - name: pyinstaller をインストール
-      run: pip install pyinstaller
+      run: |
+        source .venv/Scripts/activate
+        pip install pyinstaller
 
     - name: 実行可能ファイルをビルド
-      run: pyinstaller --onefile peak_picking_tool.py
+      run: |
+        source .venv/Scripts/activate
+        pyinstaller --onefile peak_picking_tool.py
 
     - name: GitHubリリースを作成
       id: create_release
