@@ -1,10 +1,10 @@
-name: Build and Release
+name: Build and Sign
 
 on: [push]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: コードをチェックアウト
@@ -24,83 +24,34 @@ jobs:
       with:
         python-version: 3.x
 
-    - name: 依存関係のキャッシュを復元
-      uses: actions/cache@v2
-      id: cache-pip
-      with:
-        path: |
-          ~/.cache/pip
-          .venv
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-          ${{ runner.os }}-
-
-    - name: 依存関係をインストール
-      if: steps.cache-pip.outputs.cache-hit != 'true'
-      shell: bash
+    - name: 依存関係のインストール
       run: |
         python -m pip install --upgrade pip
-        pip install pipreqs
-        if [ ! -f "requirements.txt" ]; then
-          echo "requirements.txt が存在しないため生成します。"
-          pipreqs . --force
-        fi
-        pip install -r requirements.txt
+        pip install pyinstaller
 
-    - name: PyInstallerをインストール
-      shell: bash
-      run: pip install pyinstaller
-
-    - name: ビルド成果物のキャッシュを復元
-      uses: actions/cache@v2
-      id: cache-dist
-      with:
-        path: dist
-        key: ${{ runner.os }}-dist-${{ hashFiles('**/src/**') }}
-        restore-keys: |
-          ${{ runner.os }}-dist-
-          ${{ runner.os }}-
-
-    - name: 実行可能ファイルをビルド
-      shell: bash
+    - name: 実行ファイルをビルド
       run: pyinstaller --onefile src/main.py
 
-    - name: ファイル名を変更
-      shell: bash
-      run: |
-        REPO_NAME=$(basename `git rev-parse --show-toplevel`)
-        mv dist/main.exe dist/$REPO_NAME.exe
-
-    - name: ビルド成果物をキャッシュ
-      uses: actions/cache@v2
-      with:
-        path: dist
-        key: ${{ runner.os }}-dist-${{ hashFiles('**/src/**') }}
+    - name: osslsigncodeのインストール
+      run: sudo apt-get install osslsigncode
 
     - name: PFXファイルをデコードして書き込み
-      shell: bash
       run: echo "${{ secrets.CERT_PFX_BASE64 }}" | base64 -d > cert.pfx
 
-    - name: PFXファイルの検証
-      shell: bash
-      run: openssl pkcs12 -in cert.pfx -noout -info -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
+    - name: 証明書と秘密鍵の抽出
+      run: |
+        openssl pkcs12 -in cert.pfx -out cert.pem -nodes -nokeys -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
+        openssl pkcs12 -in cert.pfx -out cert.key -nodes -nocerts -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
 
     - name: 実行ファイルに署名
-      uses: skymatic/code-sign-action@v3.0.0
-      with:
-        certificate: cert.pfx
-        password: ${{ secrets.CERTIFICATE_PASSWORD }}
-        description: 'Your App'
-        timestampUrl: 'http://timestamp.digicert.com'
-        folder: 'dist'
-        recursive: false
+      run: |
+        osslsigncode sign -certs cert.pem -key cert.key -n "Your App" -t http://timestamp.digicert.com -in dist/main.exe -out dist/main-signed.exe
 
     - name: GitHubリリースを作成
       id: create_release
       uses: actions/create-release@v1
       env:
-        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.NEW_TAG }}
         release_name: Release ${{ env.NEW_TAG }}
@@ -110,9 +61,9 @@ jobs:
     - name: リリースアセットをアップロード
       uses: actions/upload-release-asset@v1
       env:
-        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ github.event.repository.name }}.exe
-        asset_name: ${{ github.event.repository.name }}.exe
+        asset_path: dist/main-signed.exe
+        asset_name: main-signed.exe
         asset_content_type: application/octet-stream
