@@ -60,6 +60,7 @@ jobs:
         key: ${{ runner.os }}-dist-${{ hashFiles('**/src/**') }}
         restore-keys: |
           ${{ runner.os }}-dist-
+          ${{ runner.os }}-
 
     - name: 実行可能ファイルをビルド
       shell: bash
@@ -77,23 +78,15 @@ jobs:
         path: dist
         key: ${{ runner.os }}-dist-${{ hashFiles('**/src/**') }}
 
-    - name: 証明書ファイルを生成
-      shell: bash
-      env:
-        MSYS_NO_PATHCONV: 1
-      run: |
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $(pwd)/cert.key -out $(pwd)/cert.pem -subj "/C=JP/ST=Tokyo/L=Chiyoda-ku/O=YourOrganization/OU=YourUnit/CN=yourdomain.com"
-        openssl pkcs12 -export -out $(pwd)/cert.pfx -inkey $(pwd)/cert.key -in $(pwd)/cert.pem -passout pass:${{ secrets.CERTIFICATE_PASSWORD }}
-
-    - name: 証明書ファイルの検証
+    - name: 実行ファイルに署名
       shell: bash
       run: |
-        openssl pkcs12 -in $(pwd)/cert.pfx -noout -info -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
+        echo "${{ secrets.CERT_PFX_BASE64 }}" | base64 -d > cert.pfx
 
     - name: 実行ファイルに署名
       uses: skymatic/code-sign-action@v3.0.0
       with:
-        certificate: $(pwd)/cert.pfx
+        certificate: cert.pfx
         password: ${{ secrets.CERTIFICATE_PASSWORD }}
         description: 'Your App'
         timestampUrl: 'http://timestamp.digicert.com'
@@ -104,7 +97,7 @@ jobs:
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.NEW_TAG }}
         release_name: Release ${{ env.NEW_TAG }}
@@ -114,7 +107,7 @@ jobs:
     - name: リリースアセットをアップロード
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: dist/${{ github.event.repository.name }}.exe
