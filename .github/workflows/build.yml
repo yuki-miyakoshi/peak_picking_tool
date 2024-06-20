@@ -33,7 +33,7 @@ jobs:
       run: pyinstaller --onefile src/main.py
 
     - name: osslsigncodeのインストール
-      run: sudo apt-get install osslsigncode
+      run: sudo apt-get install -y osslsigncode
 
     - name: PFXファイルをデコードして書き込み
       run: echo "${{ secrets.CERT_PFX_BASE64 }}" | base64 -d > cert.pfx
