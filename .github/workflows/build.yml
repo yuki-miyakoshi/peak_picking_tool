@@ -32,6 +32,9 @@ jobs:
     - name: 実行ファイルをビルド
       run: pyinstaller --onefile src/main.py
 
+    - name: ビルド後のファイル確認
+      run: ls -l dist/
+
     - name: osslsigncodeのインストール
       run: sudo apt-get install -y osslsigncode
 
