@@ -33,8 +33,7 @@ jobs:
       id: cache
       uses: actions/cache@v2
       with:
-        path: |
-          build/.venv
+        path: build/.venv
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
@@ -46,6 +45,7 @@ jobs:
         if (!(Test-Path "requirements.txt")) {
           Write-Host "requirements.txt が存在しないため生成します。"
           pipreqs . --force
+        }
 
     - name: 仮想環境のセットアップ
       run: |
