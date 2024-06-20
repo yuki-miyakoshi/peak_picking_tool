@@ -49,17 +49,17 @@ jobs:
           pipreqs . --force
         }
         python -m venv .venv
-        source .venv/Scripts/activate
+        .\.venv\Scripts\Activate.ps1
         pip install -r requirements.txt
 
     - name: pyinstaller をインストール
       run: |
-        source .venv/Scripts/activate
+        .\.venv\Scripts\Activate.ps1
         pip install pyinstaller
 
     - name: 実行可能ファイルをビルド
       run: |
-        source .venv/Scripts/activate
+        .\.venv\Scripts\Activate.ps1
         pyinstaller --onefile peak_picking_tool.py
 
     - name: GitHubリリースを作成
