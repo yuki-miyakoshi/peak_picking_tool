@@ -1,3 +1,27 @@
+# Pythonのデフォルト設定
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# 仮想環境
+venv/
+ENV/
+env/
+.venv/
+.pytest_cache/
+
+# 設定ファイル
+*.ini
+*.log
+
+# PyInstaller
 /build/
 /dist/
 *.spec
+
+# その他
+.DS_Store
+.idea/
+.vscode/
