@@ -45,6 +45,7 @@ jobs:
         if (!(Test-Path "requirements.txt")) {
           Write-Host "requirements.txt が存在しないため生成します。"
           pipreqs . --force
+        }
 
     - name: 仮想環境のセットアップ
       run: |
