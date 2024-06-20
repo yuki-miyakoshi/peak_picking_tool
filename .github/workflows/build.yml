@@ -30,7 +30,7 @@ jobs:
           echo "poetryPath=$poetryPath" >> $GITHUB_ENV
 
       - name: Add Poetry to PATH
-        run: echo "${{ env.poetryPath }}" >> $GITHUB_PATH
+        run: echo "$env:USERPROFILE\AppData\Roaming\Python\Scripts" >> $GITHUB_PATH
 
       - name: Install dependencies with Poetry
         run: poetry install
