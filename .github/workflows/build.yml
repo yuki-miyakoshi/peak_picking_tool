@@ -84,12 +84,25 @@ jobs:
         $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourName" -CertStoreLocation "Cert:\CurrentUser\My"
         Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath "cert.pfx" -Password (ConvertTo-SecureString -String $env:CERTIFICATE_PASSWORD -Force -AsPlainText)
 
+    - name: signtool.exeのパスを検索
+      id: find_signtool
+      shell: pwsh
+      run: |
+        $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
+        if ($signtool) {
+          Write-Host "signtool found at: $($signtool.Source)"
+        } else {
+          Write-Host "signtool not found"
+          exit 1
+        }
+        echo "::set-output name=signtool_path::$($signtool.Source)"
+
     - name: 実行ファイルに署名
       shell: pwsh
       env:
         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
       run: |
-        Start-Process -FilePath "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" -ArgumentList "sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a /f cert.pfx /p $env:CERTIFICATE_PASSWORD dist/$REPO_NAME.exe" -NoNewWindow -Wait
+        Start-Process -FilePath "${{ steps.find_signtool.outputs.signtool_path }}" -ArgumentList "sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a /f cert.pfx /p $env:CERTIFICATE_PASSWORD dist/$REPO_NAME.exe" -NoNewWindow -Wait
 
     - name: GitHubリリースを作成
       id: create_release
