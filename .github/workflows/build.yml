@@ -115,9 +115,12 @@ jobs:
           exit 1
         fi
 
-    - name: 署名後の実行ファイルをリリースアセットとしてアップロード
-      env:
-        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+    - name: GitHub CLI をインストール
+      uses: actions/setup-gh@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: GitHubリリースを作成
       run: |
         ARCH=$(cat architecture.txt)
-        gh release upload ${{ steps.bump_version.outputs.new_tag }} dist/${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe --clobber
+        gh release create ${{ steps.bump_version.outputs.new_tag }} dist/${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe --title "Release ${{ steps.bump_version.outputs.new_tag }}" --notes "Signed release of version ${{ steps.bump_version.outputs.new_tag }}"
