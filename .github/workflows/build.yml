@@ -29,7 +29,17 @@ jobs:
       with:
         python-version: 3.x
 
-    - name: 依存関係を自動生成
+    - name: 依存関係のキャッシュを復元
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~\AppData\Local\pip\Cache
+          ~\AppData\Local\pip\http
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: 依存関係をインストール
       run: |
         python -m pip install --upgrade pip
         pip install pipreqs
