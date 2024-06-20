@@ -78,11 +78,13 @@ jobs:
         path: dist
         key: ${{ runner.os }}-dist-${{ hashFiles('**/src/**') }}
 
-    - name: 実行ファイルに署名
+    - name: PFXファイルをデコードして書き込み
       shell: bash
-      run: |
-        echo "${{ secrets.CERT_PFX_BASE64 }}" | base64 -d > cert.pfx
-        openssl pkcs12 -in cert.pfx -noout -info -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
+      run: echo "${{ secrets.CERT_PFX_BASE64 }}" | base64 -d > cert.pfx
+
+    - name: PFXファイルの検証
+      shell: bash
+      run: openssl pkcs12 -in cert.pfx -noout -info -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
 
     - name: 実行ファイルに署名
       uses: skymatic/code-sign-action@v3.0.0
