@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build-and-tag:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: コードをチェックアウト
@@ -17,10 +17,10 @@ jobs:
 
     - name: バージョンをバンプしてタグ付け
       id: bump_version
-      shell: pwsh
+      shell: bash
       run: |
-        $NEW_TAG = (Get-Date -Format "yyyyMMddHHmmss")
-        "NEW_TAG=$NEW_TAG" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        NEW_TAG=$(date +'%Y%m%d%H%M%S')
+        echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
         git tag $NEW_TAG
         git push origin $NEW_TAG
 
@@ -33,8 +33,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          ~\AppData\Local\pip\Cache
-          ~\AppData\Local\pip\http
+          ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
@@ -43,10 +42,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pipreqs
-        if (!(Test-Path "requirements.txt")) {
-          Write-Host "requirements.txt が存在しないため生成します。"
+        if [ ! -f requirements.txt ]; then
+          echo "requirements.txt が存在しないため生成します。"
           pipreqs . --force
-        }
+        fi
         pip install -r requirements.txt
 
     - name: pyinstaller をインストール
@@ -56,30 +55,30 @@ jobs:
       run: pyinstaller --onefile src/main.py
 
     - name: ファイル名を変更
-      shell: pwsh
+      shell: bash
       run: |
-        $REPO_NAME = (git rev-parse --show-toplevel | Split-Path -Leaf)
-        Rename-Item -Path "dist/main.exe" -NewName "$REPO_NAME.exe"
+        REPO_NAME=$(basename `git rev-parse --show-toplevel`)
+        mv dist/main dist/$REPO_NAME
 
-    - name: Windows SDK をインストール
-      run: |
-        choco install windows-sdk-10-version-1903-all -y
-        RefreshEnv
+    - name: OpenSSLをインストール
+      run: sudo apt-get update && sudo apt-get install -y openssl
 
     - name: 自己署名証明書を作成
-      shell: pwsh
+      shell: bash
       env:
         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
       run: |
-        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourName" -CertStoreLocation "Cert:\CurrentUser\My"
-        Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath "cert.pfx" -Password (ConvertTo-SecureString -String $env:CERTIFICATE_PASSWORD -Force -AsPlainText)
+        openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -subj "/CN=YourName" -keyout mykey.pem -out mycert.pem
+        openssl pkcs12 -export -out mycert.pfx -inkey mykey.pem -in mycert.pem -password pass:$CERTIFICATE_PASSWORD
 
     - name: 実行ファイルに署名
-      shell: pwsh
+      shell: bash
       env:
         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
       run: |
-        Start-Process -FilePath "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" -ArgumentList "sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a /f cert.pfx /p $env:CERTIFICATE_PASSWORD dist/$REPO_NAME.exe" -NoNewWindow -Wait
+        sudo apt-get install -y osslsigncode
+        REPO_NAME=$(basename `git rev-parse --show-toplevel`)
+        osslsigncode sign -pkcs12 mycert.pfx -pass $CERTIFICATE_PASSWORD -n "My Application" -i "http://example.com" -t "http://timestamp.digicert.com" -in dist/$REPO_NAME -out dist/$REPO_NAME-signed
 
     - name: GitHubリリースを作成
       id: create_release
@@ -98,6 +97,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ github.event.repository.name }}.exe
-        asset_name: ${{ github.event.repository.name }}.exe
+        asset_path: dist/${{ github.event.repository.name }}-signed
+        asset_name: ${{ github.event.repository.name }}-signed
         asset_content_type: application/octet-stream
