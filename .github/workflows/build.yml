@@ -51,52 +51,20 @@ jobs:
     - name: ファイル名を変更
       run: |
         REPO_NAME=$(basename `git rev-parse --show-toplevel`)
-        mv dist/main dist/$REPO_NAME
+        mv dist/main dist/$REPO_NAME.exe
 
-    - name: アーティファクトをアップロード
-      uses: actions/upload-artifact@v2
-      with:
-        name: built-files
-        path: dist/
-
-  sign:
-    runs-on: windows-latest
-    needs: build
-
-    steps:
-    - name: アーティファクトをダウンロード
-      uses: actions/download-artifact@v2
-      with:
-        name: built-files
-        path: .
-
-    - name: 自己署名証明書を作成
-      shell: pwsh
-      env:
-        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+    - name: 証明書ファイルを準備
       run: |
-        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourName" -CertStoreLocation "Cert:\CurrentUser\My"
-        Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath "cert.pfx" -Password (ConvertTo-SecureString -String $env:CERTIFICATE_PASSWORD -Force -AsPlainText)
+        echo "${{ secrets.CERT_PFX }}" | base64 --decode > cert.pfx
 
-    - name: signtool.exeのパスを検索
-      id: find_signtool
-      shell: pwsh
+    - name: 証明書の分割
       run: |
-        $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
-        if ($signtool) {
-          Write-Host "signtool found at: $($signtool.Source)"
-        } else {
-          Write-Host "signtool not found"
-          exit 1
-        }
-        echo "::set-output name=signtool_path::$($signtool.Source)"
+        openssl pkcs12 -in cert.pfx -nocerts -out private.key -password pass:${{ secrets.CERTIFICATE_PASSWORD }}
+        openssl pkcs12 -in cert.pfx -nokeys -out public.crt -password pass:${{ secrets.CERTIFICATE_PASSWORD }}
 
     - name: 実行ファイルに署名
-      shell: pwsh
-      env:
-        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
       run: |
-        Start-Process -FilePath "${{ steps.find_signtool.outputs.signtool_path }}" -ArgumentList "sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a /f cert.pfx /p $env:CERTIFICATE_PASSWORD dist/${{ github.event.repository.name }}" -NoNewWindow -Wait
+        osslsigncode sign -certs public.crt -key private.key -pass "${{ secrets.CERTIFICATE_PASSWORD }}" -n "Your App" -i http://www.yourwebsite.com -t http://timestamp.digicert.com -in dist/${{ github.event.repository.name }}.exe -out dist/${{ github.event.repository.name }}-signed.exe
 
     - name: GitHubリリースを作成
       id: create_release
@@ -115,6 +83,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ github.event.repository.name }}
-        asset_name: ${{ github.event.repository.name }}
+        asset_path: dist/${{ github.event.repository.name }}-signed.exe
+        asset_name: ${{ github.event.repository.name }}-signed.exe
         asset_content_type: application/octet-stream
