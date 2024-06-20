@@ -82,6 +82,7 @@ jobs:
       shell: bash
       run: |
         echo "${{ secrets.CERT_PFX_BASE64 }}" | base64 -d > cert.pfx
+        openssl pkcs12 -in cert.pfx -noout -info -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
 
     - name: 実行ファイルに署名
       uses: skymatic/code-sign-action@v3.0.0
@@ -97,7 +98,7 @@ jobs:
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.NEW_TAG }}
         release_name: Release ${{ env.NEW_TAG }}
@@ -107,7 +108,7 @@ jobs:
     - name: リリースアセットをアップロード
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: dist/${{ github.event.repository.name }}.exe
