@@ -10,21 +10,25 @@ jobs:
     - name: コードをチェックアウト
       uses: actions/checkout@v2
 
-    - name: Pythonキャッシュの復元
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
     - name: Pythonをセットアップ
       uses: actions/setup-python@v2
       with:
         python-version: 3.x
 
-    - name: 依存関係をインストール
+    - name: 仮想環境を作成
+      run: python -m venv venv
+
+    - name: Pythonキャッシュの復元
+      uses: actions/cache@v2
+      with:
+        path: venv
+        key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-venv-
+
+    - name: 仮想環境をアクティブ化して依存関係をインストール
       run: |
+        .\venv\Scripts\activate
         python -m pip install --upgrade pip
         pip install pipreqs
         if (!(Test-Path "requirements.txt")) {
@@ -32,16 +36,16 @@ jobs:
           pipreqs . --force
         }
         pip install -r requirements.txt
-
-    - name: pyinstaller をインストール
-      run: pip install pyinstaller
+        pip install pyinstaller
 
     - name: アーキテクチャの取得
       id: get_architecture
       run: echo $env:PROCESSOR_ARCHITECTURE > architecture.txt
 
-    - name: 実行ファイルをビルド
-      run: pyinstaller --onefile src/main.py
+    - name: 仮想環境をアクティブ化して実行ファイルをビルド
+      run: |
+        .\venv\Scripts\activate
+        pyinstaller --onefile src/main.py
 
     - name: ビルド成果物の検証
       run: |
