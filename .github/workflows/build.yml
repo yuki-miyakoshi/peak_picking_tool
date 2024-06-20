@@ -42,13 +42,24 @@ jobs:
         fi
         pip install -r requirements.txt
 
+    - name: PyInstallerをインストール
+      run: pip install pyinstaller
+
+    - name: 実行可能ファイルをビルド
+      run: pyinstaller --onefile src/main.py
+
+    - name: ファイル名を変更
+      run: |
+        REPO_NAME=$(basename `git rev-parse --show-toplevel`)
+        mv dist/main dist/$REPO_NAME
+
     - name: アーティファクトをアップロード
       uses: actions/upload-artifact@v2
       with:
-        name: source-code
-        path: .
+        name: built-files
+        path: dist/
 
-  build-and-sign:
+  sign:
     runs-on: windows-latest
     needs: build
 
@@ -56,51 +67,36 @@ jobs:
     - name: アーティファクトをダウンロード
       uses: actions/download-artifact@v2
       with:
-        name: source-code
+        name: built-files
         path: .
 
-    - name: Pythonをセットアップ
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.x
-
-    - name: pyinstaller をインストール
-      run: pip install pyinstaller
-
-    - name: 実行可能ファイルをビルド
-      run: pyinstaller --onefile src/main.py
-
-    - name: ファイル名を変更
-      shell: pwsh
-      run: |
-        $REPO_NAME = (git rev-parse --show-toplevel | Split-Path -Leaf)
-        Rename-Item -Path "dist/main.exe" -NewName "$REPO_NAME.exe"
-
-    - name: 自己署名証明書を作成し、エクスポート
+    - name: 自己署名証明書を作成
       shell: pwsh
       env:
         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
       run: |
         $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=YourName" -CertStoreLocation "Cert:\CurrentUser\My"
         Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath "cert.pfx" -Password (ConvertTo-SecureString -String $env:CERTIFICATE_PASSWORD -Force -AsPlainText)
-        $base64cert = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes("cert.pfx"))
-        echo "CERTIFICATE=$base64cert" >> $GITHUB_ENV
 
-    - name: GitHubシークレットから証明書を取得しデコード
+    - name: signtool.exeのパスを検索
+      id: find_signtool
       shell: pwsh
       run: |
-        $certBytes = [System.Convert]::FromBase64String($env:CERTIFICATE)
-        [System.IO.File]::WriteAllBytes("cert.pfx", $certBytes)
+        $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
+        if ($signtool) {
+          Write-Host "signtool found at: $($signtool.Source)"
+        } else {
+          Write-Host "signtool not found"
+          exit 1
+        }
+        echo "::set-output name=signtool_path::$($signtool.Source)"
 
-    - name: signtool.exeを使って実行ファイルに署名
-      uses: skymatic/code-sign-action@v3.0.0
-      with:
-        certificate: ${{ secrets.CERTIFICATE }}
-        password: ${{ secrets.CERTIFICATE_PASSWORD }}
-        description: 'My App'
-        timestampUrl: 'http://timestamp.digicert.com'
-        folder: 'dist'
-        recursive: false
+    - name: 実行ファイルに署名
+      shell: pwsh
+      env:
+        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      run: |
+        Start-Process -FilePath "${{ steps.find_signtool.outputs.signtool_path }}" -ArgumentList "sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a /f cert.pfx /p $env:CERTIFICATE_PASSWORD dist/${{ github.event.repository.name }}" -NoNewWindow -Wait
 
     - name: GitHubリリースを作成
       id: create_release
@@ -119,6 +115,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ github.event.repository.name }}.exe
-        asset_name: ${{ github.event.repository.name }}.exe
+        asset_path: dist/${{ github.event.repository.name }}
+        asset_name: ${{ github.event.repository.name }}
         asset_content_type: application/octet-stream
