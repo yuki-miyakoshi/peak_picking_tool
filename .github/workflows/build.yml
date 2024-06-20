@@ -36,7 +36,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pipreqs
-        if [ ! -f "requirements.txt" ]; then
+        if [ ! -f "requirements.txt" ];then
           echo "requirements.txt が存在しないため生成します。"
           pipreqs . --force
         fi
@@ -59,8 +59,10 @@ jobs:
 
     - name: 証明書の分割
       run: |
-        openssl pkcs12 -in cert.pfx -nocerts -out private.key -password pass:${{ secrets.CERTIFICATE_PASSWORD }}
-        openssl pkcs12 -in cert.pfx -nokeys -out public.crt -password pass:${{ secrets.CERTIFICATE_PASSWORD }}
+        openssl pkcs12 -in cert.pfx -nocerts -out private.key -password pass:${{ secrets.CERTIFICATE_PASSWORD }} -nodes 2> error.log
+        cat error.log
+        openssl pkcs12 -in cert.pfx -nokeys -out public.crt -password pass:${{ secrets.CERTIFICATE_PASSWORD }} 2>> error.log
+        cat error.log
 
     - name: 実行ファイルに署名
       run: |
