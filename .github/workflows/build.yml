@@ -30,6 +30,7 @@ jobs:
         path: dist
 
   sign:
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
