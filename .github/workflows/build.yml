@@ -115,7 +115,7 @@ jobs:
 
     - name: 実行ファイルに署名
       run: |
-        ARCH=$(cat architecture.txt)
+        ARCH=$(tr -d '\r' < architecture.txt)
         if [ -f dist/main.exe ]; then
           osslsigncode sign -certs cert.pem -key cert.key -n "Your App" -t http://timestamp.digicert.com -in dist/main.exe -out dist/${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe
         else
@@ -130,7 +130,7 @@ jobs:
 
     - name: GitHubリリースを作成
       run: |
-        ARCH=$(cat architecture.txt)
+        ARCH=$(tr -d '\r' < architecture.txt)
         gh release create ${{ steps.bump_version.outputs.new_tag }} dist/${{ steps.get_repo_name.outputs.repo_name }}-${ARCH}.exe --title "Release ${{ steps.bump_version.outputs.new_tag }}" --notes "Signed release of version ${{ steps.bump_version.outputs.new_tag }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
