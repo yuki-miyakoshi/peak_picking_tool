@@ -82,18 +82,18 @@ jobs:
       env:
         MSYS_NO_PATHCONV: 1
       run: |
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout cert.key -out cert.pem -subj "/C=JP/ST=Tokyo/L=Chiyoda-ku/O=YourOrganization/OU=YourUnit/CN=yourdomain.com"
-        openssl pkcs12 -export -out cert.pfx -inkey cert.key -in cert.pem -passout pass:${{ secrets.CERTIFICATE_PASSWORD }}
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $(pwd)/cert.key -out $(pwd)/cert.pem -subj "/C=JP/ST=Tokyo/L=Chiyoda-ku/O=YourOrganization/OU=YourUnit/CN=yourdomain.com"
+        openssl pkcs12 -export -out $(pwd)/cert.pfx -inkey $(pwd)/cert.key -in $(pwd)/cert.pem -passout pass:${{ secrets.CERTIFICATE_PASSWORD }}
 
     - name: 証明書ファイルの検証
       shell: bash
       run: |
-        openssl pkcs12 -in cert.pfx -noout -info -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
+        openssl pkcs12 -in $(pwd)/cert.pfx -noout -info -passin pass:${{ secrets.CERTIFICATE_PASSWORD }}
 
     - name: 実行ファイルに署名
       uses: skymatic/code-sign-action@v3.0.0
       with:
-        certificate: cert.pfx
+        certificate: $(pwd)/cert.pfx
         password: ${{ secrets.CERTIFICATE_PASSWORD }}
         description: 'Your App'
         timestampUrl: 'http://timestamp.digicert.com'
