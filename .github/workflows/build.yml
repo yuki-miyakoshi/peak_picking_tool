@@ -27,20 +27,18 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           $poetryPath = [System.Environment]::GetEnvironmentVariable("USERPROFILE") + "\AppData\Roaming\Python\Scripts"
-          echo "##vso[task.prependpath]$poetryPath"
-          poetry config virtualenvs.create false
+          echo "::add-path::$poetryPath"
+          echo "##[add-path]$poetryPath"
+          $env:Path = "$env:Path;$poetryPath"
 
       - name: Install dependencies with Poetry
-        run: |
-          poetry install
+        run: poetry install
 
       - name: Update dependencies with Poetry
-        run: |
-          poetry update
+        run: poetry update
 
       - name: Export requirements.txt
-        run: |
-          poetry export -f requirements.txt --output requirements.txt --without-hashes
+        run: poetry export -f requirements.txt --output requirements.txt --without-hashes
 
       - name: Check if requirements.txt has changed
         id: git_diff
