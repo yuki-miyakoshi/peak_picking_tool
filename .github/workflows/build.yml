@@ -39,6 +39,9 @@ jobs:
         }
         pip install -r requirements.txt
 
+    - name: pyinstaller をインストール
+      run: pip install pyinstaller
+
     - name: 実行可能ファイルをビルド
       run: pyinstaller --onefile peak_picking_tool.py
 
