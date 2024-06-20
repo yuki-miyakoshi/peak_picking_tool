@@ -29,8 +29,7 @@ jobs:
       with:
         python-version: 3.x
 
-    - name: キャッシュディレクトリの設定
-      id: cache
+    - name: 依存関係キャッシュの復元
       uses: actions/cache@v2
       with:
         path: |
@@ -40,7 +39,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    - name: 依存関係を自動生成
+    - name: ビルドキャッシュの復元
+      uses: actions/cache@v2
+      with:
+        path: build
+        key: build-${{ runner.os }}-${{ github.sha }}
+        restore-keys: |
+          build-${{ runner.os }}-
+
+    - name: 依存関係をインストール
       run: |
         python -m pip install --upgrade pip
         pip install pipreqs
@@ -60,7 +67,13 @@ jobs:
     - name: 実行可能ファイルをビルド
       run: |
         .\.venv\Scripts\Activate.ps1
-        pyinstaller --onefile peak_picking_tool.py
+        pyinstaller --onefile --distpath build dist/peak_picking_tool.py
+
+    - name: ビルドキャッシュの保存
+      uses: actions/cache@v2
+      with:
+        path: build
+        key: build-${{ runner.os }}-${{ github.sha }}
 
     - name: GitHubリリースを作成
       id: create_release
@@ -79,6 +92,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/peak_picking_tool.exe
+        asset_path: build/peak_picking_tool.exe
         asset_name: peak_picking_tool.exe
         asset_content_type: application/octet-stream
