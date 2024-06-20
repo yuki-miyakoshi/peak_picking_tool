@@ -33,7 +33,7 @@ jobs:
       id: cache
       uses: actions/cache@v2
       with:
-        path: build
+        path: build/.venv
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
@@ -64,7 +64,7 @@ jobs:
     - name: 実行可能ファイルをビルド
       run: |
         .\build\.venv\Scripts\Activate.ps1
-        pyinstaller --onefile peak_picking_tool.py --distpath build/dist
+        pyinstaller --onefile peak_picking_tool.py
 
     - name: GitHubリリースを作成
       id: create_release
@@ -83,6 +83,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: build/dist/peak_picking_tool.exe
+        asset_path: dist/peak_picking_tool.exe
         asset_name: peak_picking_tool.exe
         asset_content_type: application/octet-stream
