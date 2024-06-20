@@ -45,6 +45,12 @@ jobs:
     - name: 実行可能ファイルをビルド
       run: pyinstaller --onefile src/main.py
 
+    - name: ファイル名を変更
+      shell: pwsh
+      run: |
+        $REPO_NAME = (git rev-parse --show-toplevel).Split('\')[-1]
+        Rename-Item -Path "dist/main.exe" -NewName "$REPO_NAME.exe"
+
     - name: GitHubリリースを作成
       id: create_release
       uses: actions/create-release@v1
@@ -62,6 +68,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/peak_picking_tool.exe
-        asset_name: peak_picking_tool.exe
+        asset_path: dist/${{ github.event.repository.name }}.exe
+        asset_name: ${{ github.event.repository.name }}.exe
         asset_content_type: application/octet-stream
